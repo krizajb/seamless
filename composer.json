@@ -1,0 +1,40 @@
+{
+    "name": "krizajb/seamless",
+    "description": "Seamless experience for user login/register/reset/logout actions.",
+    "type": "craft-plugin",
+    "version": "1",
+    "keywords": [
+        "craft",
+        "cms",
+        "craftcms",
+        "craft-plugin",
+        "seamless"
+    ],
+    "support": {
+        "docs": "???",
+        "issues": "???"
+    },
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "krizajb",
+            "homepage": "www.qord.si"
+        }
+    ],
+    "require": {
+        "craftcms/cms": "^3.0.0-RC1"
+    },
+    "autoload": {
+        "psr-4": {
+          "krizajb\\seamless\\": "src/"
+        }
+    },
+    "extra": {
+        "name": "Seamless",
+        "handle": "seamless",
+        "hasCpSettings": false,
+        "hasCpSection": false,
+        "changelogUrl": "???",
+        "class": "krizajb\\seamless\\Seamless"
+    }
+}
