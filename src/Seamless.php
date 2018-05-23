@@ -56,7 +56,7 @@ class Seamless extends Plugin
      *
      * @var string
      */
-    public $schemaVersion = '1';
+    public $schemaVersion = '1.0.0';
 
     // Public Methods
     // =========================================================================
@@ -82,7 +82,7 @@ class Seamless extends Plugin
             UrlManager::class,
             UrlManager::EVENT_REGISTER_SITE_URL_RULES,
             function (RegisterUrlRulesEvent $event) {
-                $event->rules['siteActionTrigger1'] = 'seamless/default';
+                $event->rules['siteActionTrigger1'] = 'seamless/users';
             }
         );
 
@@ -91,7 +91,7 @@ class Seamless extends Plugin
             UrlManager::class,
             UrlManager::EVENT_REGISTER_CP_URL_RULES,
             function (RegisterUrlRulesEvent $event) {
-                $event->rules['cpActionTrigger1'] = 'seamless/default/do-something';
+                $event->rules['cpActionTrigger1'] = 'seamless/users/do-something';
             }
         );
 

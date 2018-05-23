@@ -2,7 +2,7 @@
     "name": "krizajb/seamless",
     "description": "Seamless experience for user login/register/reset/logout actions.",
     "type": "craft-plugin",
-    "version": "1",
+    "version": "1.0.0",
     "keywords": [
         "craft",
         "cms",
