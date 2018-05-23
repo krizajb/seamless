@@ -1,11 +1,16 @@
 <?php
 /**
- * @link https://craftcms.com/
- * @copyright Copyright (c) Pixel & Tonic, Inc.
- * @license https://craftcms.github.io/license/
+ * Seamless plugin for Craft CMS 3.x
+ *
+ * Seamless experience for user login/register/reset/logout actions.
+ *
+ * @link      www.qord.si
+ * @copyright Copyright (c) 2018 krizajb
  */
 
-namespace craft\controllers;
+namespace krizajb\seamless\controllers;
+
+use krizajb\seamless\Seamless;
 
 use Craft;
 use craft\base\Element;
@@ -34,18 +39,25 @@ use yii\web\HttpException;
 use yii\web\NotFoundHttpException;
 use yii\web\Response;
 
-/** @noinspection ClassOverridesFieldOfSuperClassInspection */
-
 /**
- * The UsersController class is a controller that handles various user account related tasks such as logging-in,
- * impersonating a user, logging out, forgetting passwords, setting passwords, validating accounts, activating
- * accounts, creating users, saving users, processing user avatars, deleting, suspending and un-suspending users.
- * Note that all actions in the controller, except [[actionLogin]], [[actionLogout]], [[actionGetRemainingSessionTime]],
- * [[actionSendPasswordResetEmail]], [[actionSetPassword]], [[actionVerifyEmail]] and [[actionSaveUser]] require an
- * authenticated Craft session via [[allowAnonymous]].
+ * Default Controller
  *
- * @author Pixel & Tonic, Inc. <support@pixelandtonic.com>
- * @since 3.0
+ * Generally speaking, controllers are the middlemen between the front end of
+ * the CP/website and your plugin’s services. They contain action methods which
+ * handle individual tasks.
+ *
+ * A common pattern used throughout Craft involves a controller action gathering
+ * post data, saving it on a model, passing the model off to a service, and then
+ * responding to the request appropriately depending on the service method’s response.
+ *
+ * Action methods begin with the prefix “action”, followed by a description of what
+ * the method does (for example, actionSaveIngredient()).
+ *
+ * https://craftcms.com/docs/plugins/controllers
+ *
+ * @author    krizajb
+ * @package   Seamless
+ * @since     1
  */
 class UsersController extends Controller
 {
@@ -76,36 +88,27 @@ class UsersController extends Controller
         'send-activation-email',
         'save-user',
         'set-password',
-        'verify-email'
+        'verify-email',
+        'do-something'
     ];
+
+    // Renders only block of the template
+    // TODO: Don't use if not really needed, use renderTemplate instead
+    // and split the template appropriately
+    private function renderBlock(string $template, $block, array $variables = [])
+    {
+        $twig = $this->getView()->getTwig();
+        $template = $twig->loadTemplate($template);
+
+        return $template->renderBlock($block, $twig->mergeGlobals($variables));
+    }
 
     // Public Methods
     // =========================================================================
 
-    /**
-     * Displays the login template, and handles login post requests.
-     *
-     * @return Response|null
-     */
-    public function actionLogin()
+    private function loginUser($loginName, $password, $rememberMe)
     {
-        if (!Craft::$app->getUser()->getIsGuest()) {
-            // Too easy.
-            return $this->_handleSuccessfulLogin(false);
-        }
-
-        if (!Craft::$app->getRequest()->getIsPost()) {
-            $this->_enforceOfflineLoginPage();
-            return null;
-        }
-
-        // First, a little house-cleaning for expired, pending users.
-        Craft::$app->getUsers()->purgeExpiredPendingUsers();
-
-        $loginName = Craft::$app->getRequest()->getBodyParam('loginName');
-        $password = Craft::$app->getRequest()->getBodyParam('password');
-        $rememberMe = (bool)Craft::$app->getRequest()->getBodyParam('rememberMe');
-
+        Craft::log("loginUser ".$loginName." ".$password);
         // Does a user exist with that username/email?
         $user = Craft::$app->getUsers()->getUserByUsernameOrEmail($loginName);
 
@@ -113,6 +116,7 @@ class UsersController extends Controller
         usleep(random_int(0, 1500000));
 
         if (!$user || $user->password === null) {
+            Craft::log("no user or no pass");
             // Delay again to match $user->authenticate()'s delay
             Craft::$app->getSecurity()->validatePassword('p@ss1w0rd', '$2y$13$nj9aiBeb7RfEfYP3Cum6Revyu14QelGGxwcnFUKXIrQUitSodEPRi');
             return $this->_handleLoginFailure(User::AUTH_INVALID_CREDENTIALS);
@@ -120,6 +124,7 @@ class UsersController extends Controller
 
         // Did they submit a valid password, and is the user capable of being logged-in?
         if (!$user->authenticate($password)) {
+            Craft::log("can't login in");
             return $this->_handleLoginFailure($user->authError, $user);
         }
 
@@ -138,6 +143,34 @@ class UsersController extends Controller
         }
 
         return $this->_handleSuccessfulLogin(true);
+    }
+    /**
+     * Displays the login template, and handles login post requests.
+     *
+     * @return Response|null
+     */
+    public function actionLogin()
+    {
+        Craft::log("Logging in");
+
+        if (!Craft::$app->getUser()->getIsGuest()) {
+            // Too easy.
+            return $this->_handleSuccessfulLogin(false);
+        }
+
+        if (!Craft::$app->getRequest()->getIsPost()) {
+            $this->_enforceOfflineLoginPage();
+            return null;
+        }
+
+        // First, a little house-cleaning for expired, pending users.
+        Craft::$app->getUsers()->purgeExpiredPendingUsers();
+
+        $loginName = Craft::$app->getRequest()->getBodyParam('loginName');
+        $password = Craft::$app->getRequest()->getBodyParam('password');
+        $rememberMe = (bool)Craft::$app->getRequest()->getBodyParam('rememberMe');
+
+        return $this->loginUser($loginName, $password, $rememberMe);
     }
 
     /**
@@ -851,6 +884,8 @@ class UsersController extends Controller
      */
     public function actionSaveUser()
     {
+        Craft::log("actionSaveUser");
+
         $this->requirePostRequest();
 
         $edition = Craft::$app->getEdition();
@@ -1122,10 +1157,15 @@ class UsersController extends Controller
             $this->_maybeLoginUserAfterAccountActivation($user);
         }
 
+        // Force auto-login to enable seamless interaction?
+        //
+        //Craft::$app->getUser()->login($user);
+
         if ($request->getAcceptsJson()) {
             return $this->asJson([
                 'success' => true,
-                'id' => $user->id
+                'id' => $user->id,
+                'navigation' => Craft::$app->getView()->renderTemplate('shop/_layouts/navigation', []),
             ]);
         }
 
@@ -1577,6 +1617,7 @@ class UsersController extends Controller
      */
     private function _handleSuccessfulLogin(bool $setNotice): Response
     {
+        log("NICE, LETS DO IT!");
         // Get the return URL
         $userService = Craft::$app->getUser();
         $returnUrl = $userService->getReturnUrl();
@@ -1588,7 +1629,9 @@ class UsersController extends Controller
         if (Craft::$app->getRequest()->getAcceptsJson()) {
             return $this->asJson([
                 'success' => true,
-                'returnUrl' => $returnUrl
+                'returnUrl' => $returnUrl,
+//                'navigation' => Craft::$app->getView()->renderTemplate('shop/_layouts/navigation', []),
+                'navigation' => $this->renderBlock('shop/_layouts/navigation', 'content'),
             ]);
         }
 
@@ -1955,5 +1998,20 @@ class UsersController extends Controller
         ]);
 
         return null;
+    }
+
+    /**
+     * Handle a request going to our plugin's actionDoSomething URL,
+     * e.g.: actions/seamless/default/do-something
+     *
+     * @return mixed
+     */
+    public function actionDoSomething()
+    {
+        Craft::log("Do something");
+        return $this->asJson([
+            'success' => true,
+            'result' => 'Welcome to the DefaultController actionDoSomething() method'
+        ]);
     }
 }
