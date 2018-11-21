@@ -2,7 +2,8 @@
 
 Seamless experience for user login/register/reset/logout actions.
 
-![Screenshot](resources/img/plugin-logo.png)
+## Status
+### Development discontinued since one needs to reset/recreate the session after successful user operation. This introduced to much time/effort hence the discontinued development. Nonetheless example of seamless user login operation was implemented.
 
 ## Requirements
 
